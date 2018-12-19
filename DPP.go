@@ -57,13 +57,16 @@ func GetLeftFork(_philosopher *Philosopher) {
 				if status {
 					_philosopher.leftFork <- false
 					forkAcquired = true
+					break
 				} else {
 					_philosopher.leftFork <- false
 					fmt.Printf("I, %s, still need a fork\n", _philosopher.name)
+					break
 				}
 			default:
 				time.Sleep(time.Second * 2)
 				fmt.Printf("I, %s, still need a fork\n", _philosopher.name)
+				break
 			}
 		} else {
 			break
@@ -83,13 +86,16 @@ func GetRightFork(_philosopher *Philosopher) {
 				if status {
 					_philosopher.rightFork <- false
 					forkAcquired = true
+					break
 				} else {
 					_philosopher.rightFork <- false
 					fmt.Printf("I, %s, still need a fork\n", _philosopher.name)
+					break
 				}
 			default:
 				time.Sleep(time.Second * 2)
 				fmt.Printf("I, %s, still need a fork\n", _philosopher.name)
+				break
 			}
 		} else {
 			break
@@ -113,11 +119,13 @@ func PutForksDown(_philosopher *Philosopher) {
 				if !status {
 					_philosopher.leftFork <- true
 					fork1 = true
+					break
 				} else {
 					_philosopher.leftFork <- false
+					break
 				}
 			default:
-				_philosopher.leftFork <- true
+				break
 			}
 		} else {
 			break
@@ -133,10 +141,10 @@ func PutForksDown(_philosopher *Philosopher) {
 					fork2 = true
 				} else {
 					_philosopher.rightFork <- false
+					break
 				}
 			default:
-				_philosopher.rightFork <- true
-
+				break
 			}
 		} else {
 			break
@@ -156,7 +164,7 @@ func Dine(_philosopher *Philosopher) {
 	Eat(_philosopher)
 	PutForksDown(_philosopher)
 	fmt.Println("ALL DONE")
-	defer wg.Done()
+	wg.Done()
 }
 
 //MakeFork produces a channel of type boolean and adds it to the forks array
@@ -174,29 +182,17 @@ func MakePhilosopher(_numberOfPhilosophers int) {
 }
 
 func SetupLeftSide(_numberOfPhilosophers int) {
-	for i := 1; i < _numberOfPhilosophers-1; i++ {
-		philosophers[i].leftNeighbor = &philosophers[i-1]
-
-	}
-	philosophers[0].leftNeighbor = &philosophers[_numberOfPhilosophers-1]
-
 	for i := 0; i < _numberOfPhilosophers-2; i++ {
 		philosophers[i].leftFork = forks[i]
 	}
-	philosophers[_numberOfPhilosophers-1].leftFork = forks[0]
+	philosophers[_numberOfPhilosophers-1].leftFork = forks[_numberOfPhilosophers-1]
 }
 
 func SetUpRightSide(_numberOfPhilosophers int) {
 	for i := 0; i < _numberOfPhilosophers-2; i++ {
-		philosophers[i].rightNeighbor = &philosophers[i-1]
-
-	}
-	philosophers[_numberOfPhilosophers-1].rightNeighbor = &philosophers[0]
-
-	for i := 0; i < _numberOfPhilosophers-2; i++ {
 		philosophers[i].rightFork = forks[i+1]
 	}
-	philosophers[_numberOfPhilosophers-1].rightFork = forks[_numberOfPhilosophers-1]
+	philosophers[_numberOfPhilosophers-1].rightFork = forks[_numberOfPhilosophers-2]
 }
 
 func main() {
@@ -220,10 +216,43 @@ func main() {
 	for i := 0; i < numberOfPhilosophers; i++ {
 		MakeFork(i)
 	}
+	/*
+		MakePhilosopher(numberOfPhilosophers)
+		SetupLeftSide(numberOfPhilosophers)
+		SetUpRightSide(numberOfPhilosophers)
+	*/
 
-	MakePhilosopher(numberOfPhilosophers)
-	SetupLeftSide(numberOfPhilosophers)
-	SetUpRightSide(numberOfPhilosophers)
+	_philosopher := &Philosopher{philosopherNames[0], nil, nil, nil, nil}
+	philosophers[0] = *_philosopher
+	_philosopher = &Philosopher{philosopherNames[1], nil, nil, nil, nil}
+	philosophers[1] = *_philosopher
+	_philosopher = &Philosopher{philosopherNames[2], nil, nil, nil, nil}
+	philosophers[2] = *_philosopher
+
+	philosophers[0].leftFork = forks[0]
+	philosophers[0].rightFork = forks[1]
+	philosophers[1].leftFork = forks[0]
+	philosophers[1].rightFork = forks[1]
+
+	philosophers[2].leftFork = forks[0]
+	philosophers[2].rightFork = forks[2]
+
+	/*
+		0
+		1
+
+		1
+		0
+
+		0
+		1
+
+		1
+		2
+
+		0
+		2
+	*/
 
 	for i := 0; i < numberOfPhilosophers; i++ {
 		go Dine(&philosophers[i])
