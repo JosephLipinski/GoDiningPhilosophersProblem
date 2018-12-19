@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -182,24 +182,29 @@ func MakePhilosopher(_numberOfPhilosophers int) {
 }
 
 func SetupLeftSide(_numberOfPhilosophers int) {
-	for i := 0; i < _numberOfPhilosophers-2; i++ {
+	for i := 0; i <= _numberOfPhilosophers-1; i++ {
 		philosophers[i].leftFork = forks[i]
+		fmt.Println(i)
 	}
-	philosophers[_numberOfPhilosophers-1].leftFork = forks[_numberOfPhilosophers-1]
 }
 
 func SetUpRightSide(_numberOfPhilosophers int) {
-	for i := 0; i < _numberOfPhilosophers-2; i++ {
-		philosophers[i].rightFork = forks[i+1]
+	for i := 0; i <= _numberOfPhilosophers-1; i++ {
+		philosophers[i].rightFork = forks[(i+1)%_numberOfPhilosophers]
+		fmt.Println((i + 1) % _numberOfPhilosophers)
 	}
-	philosophers[_numberOfPhilosophers-1].rightFork = forks[_numberOfPhilosophers-2]
 }
 
 func main() {
 	inputReader := bufio.NewReader(os.Stdin)
 	fmt.Println("Please enter the number (maximum of 10) of philisophers that you would like to simulate?")
 	number, _ := inputReader.ReadString('\n')
-	number = strings.TrimSuffix(number, "\n")
+	if runtime.GOOS == "windows" {
+		fmt.Println("YOU ARE USING WINDOWS")
+		number = number[:len(number)-2]
+	} else {
+		number = number[:len(number)-1]
+	}
 	numberOfPhilosophers, err := strconv.Atoi(number)
 	if err != nil {
 		fmt.Println("An error has occurred based on the number that you have entered. The defualt value of two will be used")
@@ -216,42 +221,46 @@ func main() {
 	for i := 0; i < numberOfPhilosophers; i++ {
 		MakeFork(i)
 	}
-	/*
-		MakePhilosopher(numberOfPhilosophers)
-		SetupLeftSide(numberOfPhilosophers)
-		SetUpRightSide(numberOfPhilosophers)
-	*/
 
-	_philosopher := &Philosopher{philosopherNames[0], nil, nil, nil, nil}
-	philosophers[0] = *_philosopher
-	_philosopher = &Philosopher{philosopherNames[1], nil, nil, nil, nil}
-	philosophers[1] = *_philosopher
-	_philosopher = &Philosopher{philosopherNames[2], nil, nil, nil, nil}
-	philosophers[2] = *_philosopher
+	/**/
+	MakePhilosopher(numberOfPhilosophers)
+	SetupLeftSide(numberOfPhilosophers)
+	SetUpRightSide(numberOfPhilosophers)
 
-	philosophers[0].leftFork = forks[0]
-	philosophers[0].rightFork = forks[1]
-	philosophers[1].leftFork = forks[0]
-	philosophers[1].rightFork = forks[1]
-
-	philosophers[2].leftFork = forks[0]
-	philosophers[2].rightFork = forks[2]
+	var temp = philosophers[numberOfPhilosophers-1].leftFork
+	philosophers[numberOfPhilosophers-1].leftFork = philosophers[numberOfPhilosophers-1].rightFork
+	philosophers[numberOfPhilosophers-1].rightFork = temp
 
 	/*
-		0
-		1
+		_philosopher := &Philosopher{philosopherNames[0], nil, nil, nil, nil}
+		philosophers[0] = *_philosopher
+		_philosopher = &Philosopher{philosopherNames[1], nil, nil, nil, nil}
+		philosophers[1] = *_philosopher
+		_philosopher = &Philosopher{philosopherNames[2], nil, nil, nil, nil}
+		philosophers[2] = *_philosopher
 
-		1
-		0
+		philosophers[0].leftFork = forks[0]
+		philosophers[0].rightFork = forks[1]
+		philosophers[1].leftFork = forks[0]
+		philosophers[1].rightFork = forks[1]
 
-		0
-		1
+			philosophers[2].leftFork = forks[0]
+			philosophers[2].rightFork = forks[2]
 
-		1
-		2
 
-		0
-		2
+				0
+				1
+				0
+				1
+
+				0
+				1
+
+				1
+				2
+
+				0
+				2
 	*/
 
 	for i := 0; i < numberOfPhilosophers; i++ {
