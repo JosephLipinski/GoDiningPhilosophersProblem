@@ -13,9 +13,8 @@ import (
 
 //Philosopher is a struct used to define all the attributes of a philosopher
 type Philosopher struct {
-	name                        string
-	leftNeighbor, rightNeighbor *Philosopher
-	leftFork, rightFork         chan bool
+	name                string
+	leftFork, rightFork chan bool
 }
 
 var wg sync.WaitGroup
@@ -57,6 +56,7 @@ func GetLeftFork(_philosopher *Philosopher) {
 				if status {
 					_philosopher.leftFork <- false
 					forkAcquired = true
+					fmt.Printf("I, %s, have obtained a fork\n", _philosopher.name)
 					break
 				} else {
 					_philosopher.leftFork <- false
@@ -64,7 +64,7 @@ func GetLeftFork(_philosopher *Philosopher) {
 					break
 				}
 			default:
-				time.Sleep(time.Second * 2)
+				time.Sleep(time.Second)
 				fmt.Printf("I, %s, still need a fork\n", _philosopher.name)
 				break
 			}
@@ -86,6 +86,7 @@ func GetRightFork(_philosopher *Philosopher) {
 				if status {
 					_philosopher.rightFork <- false
 					forkAcquired = true
+					fmt.Printf("I, %s, have obtained a fork\n", _philosopher.name)
 					break
 				} else {
 					_philosopher.rightFork <- false
@@ -93,7 +94,7 @@ func GetRightFork(_philosopher *Philosopher) {
 					break
 				}
 			default:
-				time.Sleep(time.Second * 2)
+				time.Sleep(time.Second)
 				fmt.Printf("I, %s, still need a fork\n", _philosopher.name)
 				break
 			}
@@ -158,13 +159,10 @@ func Dine(_philosopher *Philosopher) {
 	SayHello(_philosopher)
 	Think(_philosopher)
 	GetLeftFork(_philosopher)
-	fmt.Println("I got a fork")
 	GetRightFork(_philosopher)
-	fmt.Println("I got a fork")
 	Eat(_philosopher)
 	PutForksDown(_philosopher)
-	fmt.Println("ALL DONE")
-	wg.Done()
+	defer wg.Done()
 }
 
 //MakeFork produces a channel of type boolean and adds it to the forks array
@@ -174,33 +172,27 @@ func MakeFork(index int) {
 	forks[index] = forkChannel
 }
 
+//MakePhilosopher is a function that creates the a philosopher and establishes their ownership of forks
 func MakePhilosopher(_numberOfPhilosophers int) {
 	for i := 0; i < _numberOfPhilosophers; i++ {
-		_philosopher := &Philosopher{philosopherNames[i], nil, nil, nil, nil}
+		_philosopher := &Philosopher{philosopherNames[i], forks[i], forks[(i+1)%_numberOfPhilosophers]}
 		philosophers[i] = *_philosopher
 	}
 }
 
-func SetupLeftSide(_numberOfPhilosophers int) {
-	for i := 0; i <= _numberOfPhilosophers-1; i++ {
-		philosophers[i].leftFork = forks[i]
-		fmt.Println(i)
-	}
+//SwapForks is the key function call that allows for the dinning philosophers to eventually eat
+func SwapForks(_numberOfPhilosophers int) {
+	var temp = philosophers[_numberOfPhilosophers-1].leftFork
+	philosophers[_numberOfPhilosophers-1].leftFork = philosophers[_numberOfPhilosophers-1].rightFork
+	philosophers[_numberOfPhilosophers-1].rightFork = temp
 }
 
-func SetUpRightSide(_numberOfPhilosophers int) {
-	for i := 0; i <= _numberOfPhilosophers-1; i++ {
-		philosophers[i].rightFork = forks[(i+1)%_numberOfPhilosophers]
-		fmt.Println((i + 1) % _numberOfPhilosophers)
-	}
-}
-
+//main is the defualt name for the driver function of the program. This function handles all setup for the rest of the program
 func main() {
 	inputReader := bufio.NewReader(os.Stdin)
 	fmt.Println("Please enter the number (maximum of 10) of philisophers that you would like to simulate?")
 	number, _ := inputReader.ReadString('\n')
 	if runtime.GOOS == "windows" {
-		fmt.Println("YOU ARE USING WINDOWS")
 		number = number[:len(number)-2]
 	} else {
 		number = number[:len(number)-1]
@@ -222,53 +214,13 @@ func main() {
 		MakeFork(i)
 	}
 
-	/**/
 	MakePhilosopher(numberOfPhilosophers)
-	SetupLeftSide(numberOfPhilosophers)
-	SetUpRightSide(numberOfPhilosophers)
-
-	var temp = philosophers[numberOfPhilosophers-1].leftFork
-	philosophers[numberOfPhilosophers-1].leftFork = philosophers[numberOfPhilosophers-1].rightFork
-	philosophers[numberOfPhilosophers-1].rightFork = temp
-
-	/*
-		_philosopher := &Philosopher{philosopherNames[0], nil, nil, nil, nil}
-		philosophers[0] = *_philosopher
-		_philosopher = &Philosopher{philosopherNames[1], nil, nil, nil, nil}
-		philosophers[1] = *_philosopher
-		_philosopher = &Philosopher{philosopherNames[2], nil, nil, nil, nil}
-		philosophers[2] = *_philosopher
-
-		philosophers[0].leftFork = forks[0]
-		philosophers[0].rightFork = forks[1]
-		philosophers[1].leftFork = forks[0]
-		philosophers[1].rightFork = forks[1]
-
-			philosophers[2].leftFork = forks[0]
-			philosophers[2].rightFork = forks[2]
-
-
-				0
-				1
-				0
-				1
-
-				0
-				1
-
-				1
-				2
-
-				0
-				2
-	*/
+	SwapForks(numberOfPhilosophers)
 
 	for i := 0; i < numberOfPhilosophers; i++ {
 		go Dine(&philosophers[i])
 		wg.Add(1)
 	}
-	/**/
-	//time.Sleep(time.Second)
-	wg.Wait()
 
+	wg.Wait()
 }
